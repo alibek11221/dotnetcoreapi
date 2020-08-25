@@ -34,7 +34,7 @@ namespace SimpleApi.Data
                 return serviceResponse;
             }
 
-            CreatePasswordHash(password, out var passwordHash, out var passwordSalt);
+            CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
             await _dataContext.Users.AddAsync(user);
@@ -53,7 +53,7 @@ namespace SimpleApi.Data
                 response.Success = false;
                 response.Message = "User not found";
             }
-            else if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+            else if (IsWrongPassword(password, user.PasswordHash, user.PasswordSalt))
             {
                 response.Success = false;
                 response.Message = "Wrong password";
@@ -78,11 +78,11 @@ namespace SimpleApi.Data
             passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         }
 
-        private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+        private bool IsWrongPassword(string password, byte[] passwordHash, byte[] passwordSalt)
         {
             using var hmac = new HMACSHA512(passwordSalt);
             var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return !computedHash.Where((t, i) => t != passwordHash[i]).Any();
+            return computedHash.Where((t, i) => t != passwordHash[i]).Any();
         }
 
         private string CreateToken(User user)
